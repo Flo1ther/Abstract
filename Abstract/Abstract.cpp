@@ -1,70 +1,159 @@
 ﻿#include <iostream>
-#include <cmath>
-#include <Windows.h>
-class Equation {
+#include <fstream>
+#include <vector>
+class Shape {
 public:
-    virtual void calculateRoots() const = 0;
-
-    virtual ~Equation() {}
+    virtual void Show() const = 0;
+    virtual void Save(std::ofstream& file) const = 0;
+    virtual void Load(std::ifstream& file) = 0;
+    virtual ~Shape() {}
 };
 
-class LinearEquation : public Equation {
+class Square : public Shape {
 private:
-    double a, b;
+    int x, y;
+    int side;
 
 public:
-    LinearEquation(double a_val, double b_val) : a(a_val), b(b_val) {}
+    Square(int x_val, int y_val, int side_val) : x(x_val), y(y_val), side(side_val) {}
 
-    void calculateRoots() const override {
-        if (a == 0) {
-            if (b == 0)
-                std::cout << "Рівняння має безліч коренів\n";
-            else
-                std::cout << "Рівняння не має коренів\n";
-        }
-        else {
-            double root = -b / a;
-            std::cout << "Корінь рівняння: " << root << std::endl;
-        }
+    void Show() const override {
+        std::cout << "Square: top left corner (" << x << ", " << y << "), side length: " << side << std::endl;
+    }
+
+    void Save(std::ofstream& file) const override {
+        file << "Square " << x << " " << y << " " << side << std::endl;
+    }
+
+    void Load(std::ifstream& file) override {
+        file >> x >> y >> side;
     }
 };
-class QuadraticEquation : public Equation {
+
+class Rectangle : public Shape {
 private:
-    double a, b, c;
+    int x, y;
+    int width, height;
 
 public:
-    QuadraticEquation(double a_val, double b_val, double c_val) : a(a_val), b(b_val), c(c_val) {}
+    Rectangle(int x_val, int y_val, int width_val, int height_val) : x(x_val), y(y_val), width(width_val), height(height_val) {}
 
-    void calculateRoots() const override {
-        double discriminant = b * b - 4 * a * c;
+    void Show() const override {
+        std::cout << "Rectangle: top left corner (" << x << ", " << y << "), width: " << width << ", height: " << height << std::endl;
+    }
 
-        if (discriminant > 0) {
-            double root1 = (-b + sqrt(discriminant)) / (2 * a);
-            double root2 = (-b - sqrt(discriminant)) / (2 * a);
-            std::cout << "Перший корінь рівняння: " << root1 << std::endl;
-            std::cout << "Другий корінь рівняння: " << root2 << std::endl;
-        }
-        else if (discriminant == 0) {
-            double root = -b / (2 * a);
-            std::cout << "Рівняння має один корінь: " << root << std::endl;
-        }
-        else {
-            std::cout << "Рівняння не має дійсних коренів\n";
-        }
+    void Save(std::ofstream& file) const override {
+        file << "Rectangle " << x << " " << y << " " << width << " " << height << std::endl;
+    }
+
+    void Load(std::ifstream& file) override {
+        file >> x >> y >> width >> height;
+    }
+};
+
+class Circle : public Shape {
+private:
+    int x, y;
+    int radius;
+
+public:
+    Circle(int x_val, int y_val, int radius_val) : x(x_val), y(y_val), radius(radius_val) {}
+
+    void Show() const override {
+        std::cout << "Circle: center (" << x << ", " << y << "), radius: " << radius << std::endl;
+    }
+
+    void Save(std::ofstream& file) const override {
+        file << "Circle " << x << " " << y << " " << radius << std::endl;
+    }
+
+    void Load(std::ifstream& file) override {
+        file >> x >> y >> radius;
+    }
+};
+
+class Ellipse : public Shape {
+private:
+    int x, y;
+    int width, height;
+
+public:
+    Ellipse(int x_val, int y_val, int width_val, int height_val) : x(x_val), y(y_val), width(width_val), height(height_val) {}
+
+    void Show() const override {
+        std::cout << "Ellipse: top left corner of the bounding rectangle (" << x << ", " << y << "), width: " << width << ", height: " << height << std::endl;
+    }
+
+    void Save(std::ofstream& file) const override {
+        file << "Ellipse " << x << " " << y << " " << width << " " << height << std::endl;
+    }
+
+    void Load(std::ifstream& file) override {
+        file >> x >> y >> width >> height;
     }
 };
 
 int main() {
-    SetConsoleOutputCP(1251);
-    SetConsoleCP(1251);
-    LinearEquation linear(2, 3);
-    QuadraticEquation quadratic(1, -5, 6);
+    std::vector<Shape*> shapes;
+    shapes.push_back(new Square(0, 0, 5));
+    shapes.push_back(new Rectangle(2, 3, 6, 4));
+    shapes.push_back(new Circle(1, 1, 3));
+    shapes.push_back(new Ellipse(4, 4, 5, 3));
 
-    std::cout << "Лінійне рівняння:\n";
-    linear.calculateRoots();
+    std::ofstream outFile("shapes.txt");
+    if (outFile.is_open()) {
+        for (const auto& shape : shapes) {
+            shape->Save(outFile);
+        }
+        outFile.close();
+    }
+    else {
+        std::cerr << "Unable to open file for writing\n";
+        return 1;
+    }
 
-    std::cout << "\nКвадратне рівняння:\n";
-    quadratic.calculateRoots();
+    std::ifstream inFile("shapes.txt");
+    if (inFile.is_open()) {
+        std::cout << "Shapes read from file:\n";
+        while (!inFile.eof()) {
+            std::string type;
+            inFile >> type;
+
+            if (type == "Square") {
+                Square* square = new Square(0, 0, 0);
+                square->Load(inFile);
+                square->Show();
+                delete square;
+            }
+            else if (type == "Rectangle") {
+                Rectangle* rectangle = new Rectangle(0, 0, 0, 0);
+                rectangle->Load(inFile);
+                rectangle->Show();
+                delete rectangle;
+            }
+            else if (type == "Circle") {
+                Circle* circle = new Circle(0, 0, 0);
+                circle->Load(inFile);
+                circle->Show();
+                delete circle;
+            }
+            else if (type == "Ellipse") {
+                Ellipse* ellipse = new Ellipse(0, 0, 0, 0);
+                ellipse->Load(inFile);
+                ellipse->Show();
+                delete ellipse;
+            }
+        }
+        inFile.close();
+    }
+    else {
+        std::cerr << "Unable to open file for reading\n";
+        return 1;
+    }
+
+    for (const auto& shape : shapes) {
+        delete shape;
+    }
 
     return 0;
 }
